@@ -1,0 +1,14 @@
+[AWS_REGION]
+required = true
+source = "string"
+value = "eu-north-1"
+
+[AWS_ACCESS_KEY_ID]
+required = true
+source = "env"
+value = "AWS_ACCESS_KEY_ID"
+
+[API_URL]
+required = true
+source = "string"
+value = "https://api.example.com"

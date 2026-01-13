@@ -1,0 +1,52 @@
+# makeenv
+
+> Generate .env files from JSON, YAML, or TOML templates. Perfect for CI/CD pipelines.
+
+## Usage
+
+```bash
+npx makeenv <template-file> [output-file]
+npx makeenv <template-file> --dry-run
+npx makeenv --generate [env-file] <output-template>
+npx makeenv --set-defaults <template-file>
+```
+
+## Options
+
+- `--dry-run`: Validate template without generating output file
+- `--generate`: Create template from existing .env file (non-empty values marked required)
+- `--set-defaults`: Update template with current resolved values as defaults
+
+## Template Format
+
+Each variable in the template has these properties:
+- `required` (boolean): Fail if value is missing
+- `source` ("string" | "env"): Literal value or read from environment
+- `value` (string): The value or env var name to read
+- `default` (string): Fallback if not found
+
+## Example (YAML)
+
+```yaml
+AWS_REGION:
+  required: true
+  source: string
+  value: eu-north-1
+
+AWS_ACCESS_KEY_ID:
+  required: true
+  source: env
+  value: AWS_ACCESS_KEY_ID
+
+OPTIONAL_FEATURE:
+  required: false
+  source: env
+  value: FEATURE_FLAG
+  default: "disabled"
+```
+
+## Supported Formats
+
+- JSON (.json)
+- YAML (.yaml, .yml)
+- TOML (.toml, .tml)

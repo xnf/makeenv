@@ -1,0 +1,8 @@
+AWS_REGION:
+  required: true
+  source: string
+  value: eu-north-1
+FEATURE_FLAG:
+  required: false
+  source: env
+  value: TEST_FEATURE

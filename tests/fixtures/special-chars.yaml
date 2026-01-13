@@ -1,0 +1,19 @@
+SIMPLE_VALUE:
+  required: true
+  source: string
+  value: simple
+
+VALUE_WITH_SPACES:
+  required: true
+  source: string
+  value: "hello world"
+
+VALUE_WITH_QUOTES:
+  required: true
+  source: string
+  value: 'say "hello"'
+
+URL_VALUE:
+  required: true
+  source: string
+  value: https://api.example.com/path?query=1&other=2

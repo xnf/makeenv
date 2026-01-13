@@ -1,0 +1,16 @@
+REQUIRED_VAR:
+  required: true
+  source: string
+  value: required-value
+
+OPTIONAL_WITH_DEFAULT:
+  required: false
+  source: env
+  value: MISSING_ENV_VAR
+  default: fallback-value
+
+ENV_WITH_DEFAULT:
+  required: false
+  source: env
+  value: ALSO_MISSING
+  default: default-for-missing
