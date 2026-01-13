@@ -1,5 +1,11 @@
 # makeenv
 
+[![npm version](https://img.shields.io/npm/v/makeenv)](https://www.npmjs.com/package/makeenv)
+[![npm downloads](https://img.shields.io/npm/dm/makeenv)](https://www.npmjs.com/package/makeenv)
+[![CI](https://github.com/xnf/makeenv/actions/workflows/publish.yml/badge.svg)](https://github.com/xnf/makeenv/actions/workflows/publish.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/node/v/makeenv)](https://nodejs.org)
+
 Generate `.env` files from JSON, YAML, or TOML templates. Perfect for CI/CD pipelines.
 
 ## Why?
