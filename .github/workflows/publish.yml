@@ -40,10 +40,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Clear any auth config for OIDC
+        run: npm config delete //registry.npmjs.org/:_authToken 2>/dev/null || true
 
       - name: Set version from package.json major.minor + build number
         run: |
