@@ -40,7 +40,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
@@ -53,7 +52,5 @@ jobs:
           npm version $NEW_VERSION --no-git-tag-version
           echo "Publishing version $NEW_VERSION"
 
-      - name: Publish to npm
+      - name: Publish to npm with OIDC
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
