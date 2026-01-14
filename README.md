@@ -72,17 +72,19 @@ pnpx makeenv config.toml .env.production
 
 Templates define environment variables with the following properties:
 
-| Property   | Type    | Description                                                     |
-|------------|---------|-----------------------------------------------------------------|
-| `required` | boolean | If `true`, generation fails when value is missing               |
-| `source`   | string  | `"string"` for literal values, `"env"` to read from environment |
-| `value`    | string  | The literal value or environment variable name to read          |
-| `default`  | string  | Fallback value if the primary value is not found                |
+| Property   | Type    | Description                                                             |
+|------------|---------|-------------------------------------------------------------------------|
+| `required` | boolean | If `true`, generation fails when value is missing                       |
+| `source`   | string  | `"string"`, `"env"`, or `"AwsSecretManager"`                            |
+| `value`    | string  | The literal value, environment variable name, or `SecretId/Key` to read |
+| `default`  | string  | Fallback value if the primary value is not found                        |
 
 ### Sources
 
 - **`string`**: Use the `value` field directly as the variable value
 - **`env`**: Read the value from an environment variable named in `value`
+- **`AwsSecretManager`**: Read from AWS Secrets Manager. The `value` must be in format `SecretId/Key` (e.g.,
+  `prod/DB_HOST`). Uses AWS SDK default credential chain.
 
 ## Examples
 
@@ -104,6 +106,12 @@ DATABASE_URL:
   required: true
   source: env
   value: DB_CONNECTION_STRING
+
+# Read from AWS Secrets Manager
+DB_PASSWORD:
+  required: true
+  source: AwsSecretManager
+  value: prod/DB_PASSWORD
 
 OPTIONAL_FEATURE:
   required: false
@@ -131,6 +139,11 @@ OPTIONAL_FEATURE:
     "source": "env",
     "value": "DB_CONNECTION_STRING"
   },
+  "DB_PASSWORD": {
+    "required": true,
+    "source": "AwsSecretManager",
+    "value": "prod/DB_PASSWORD"
+  },
   "OPTIONAL_FEATURE": {
     "required": false,
     "source": "env",
@@ -157,6 +170,11 @@ value = "AWS_ACCESS_KEY_ID"
 required = true
 source = "env"
 value = "DB_CONNECTION_STRING"
+
+[DB_PASSWORD]
+required = true
+source = "AwsSecretManager"
+value = "prod/DB_PASSWORD"
 
 [OPTIONAL_FEATURE]
 required = false
@@ -227,14 +245,15 @@ Generated `.env` file:
 AWS_REGION=eu-north-1
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 DATABASE_URL=postgres://user:pass@host:5432/db
+DB_PASSWORD=supersecretpassword
 OPTIONAL_FEATURE=disabled
 ```
 
 ## Roadmap
 
-This is version 1.0.0 with a minimal feature set. Future versions will add (with backwards compatibility):
+Future versions may add (with backwards compatibility):
 
-- Additional sources (e.g., `file`, `secret-manager`, `vault`)
+- Additional sources (e.g., `file`, `vault`)
 - Variable transformation (e.g., base64 encode/decode)
 - Conditional variables
 - Multiple output formats

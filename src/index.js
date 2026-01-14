@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const toml = require('smol-toml');
+const {SecretsManagerClient, GetSecretValueCommand} = require('@aws-sdk/client-secrets-manager');
 
 /**
  * Supported source types for environment variable values
@@ -9,7 +10,35 @@ const toml = require('smol-toml');
 const SOURCE_TYPES = {
     STRING: 'string',
     ENV: 'env',
+    AWS_SECRETS_MANAGER: 'AwsSecretManager',
 };
+
+// Cache for AWS Secrets Manager secrets to avoid repeated API calls
+const secretsCache = new Map();
+
+/**
+ * Get secret from AWS Secrets Manager (with caching)
+ * @param {string} secretId - Secret ID/name
+ * @returns {Promise<object>} Parsed secret JSON
+ */
+async function getAwsSecret(secretId) {
+    if (secretsCache.has(secretId)) {
+        return secretsCache.get(secretId);
+    }
+
+    const client = new SecretsManagerClient();
+    const command = new GetSecretValueCommand({SecretId: secretId});
+    const response = await client.send(command);
+
+    const secretValue = response.SecretString;
+    if (!secretValue) {
+        throw new Error(`Secret "${secretId}" has no string value`);
+    }
+
+    const parsed = JSON.parse(secretValue);
+    secretsCache.set(secretId, parsed);
+    return parsed;
+}
 
 /**
  * Parse template file based on extension
@@ -38,9 +67,9 @@ function parseTemplateFile(filePath) {
  * Resolve a single environment variable value based on source type
  * @param {object} config - Variable configuration
  * @param {string} varName - Variable name (for error messages)
- * @returns {string|null} Resolved value or null if not found
+ * @returns {Promise<string|null>} Resolved value or null if not found
  */
-function resolveValue(config, varName) {
+async function resolveValue(config, varName) {
     const source = config.source || SOURCE_TYPES.STRING;
     const value = config.value;
     const defaultValue = config.default;
@@ -66,23 +95,60 @@ function resolveValue(config, varName) {
             }
             return null;
 
+        case SOURCE_TYPES.AWS_SECRETS_MANAGER:
+            if (!value) {
+                throw new Error(`Variable "${varName}" with source AwsSecretManager requires a value in format "SecretId/Key"`);
+            }
+            const slashIndex = value.indexOf('/');
+            if (slashIndex === -1) {
+                throw new Error(`Variable "${varName}" value "${value}" must be in format "SecretId/Key"`);
+            }
+            const secretId = value.slice(0, slashIndex);
+            const secretKey = value.slice(slashIndex + 1);
+
+            try {
+                const secret = await getAwsSecret(secretId);
+                const secretValue = secret[secretKey];
+                if (secretValue !== undefined && secretValue !== null) {
+                    return String(secretValue);
+                }
+                if (defaultValue !== undefined && defaultValue !== null) {
+                    return String(defaultValue);
+                }
+                return null;
+            } catch (err) {
+                if (defaultValue !== undefined && defaultValue !== null) {
+                    return String(defaultValue);
+                }
+                throw new Error(`Failed to retrieve secret "${secretId}" for variable "${varName}": ${err.message}`);
+            }
+
         default:
-            throw new Error(`Unknown source type "${source}" for variable "${varName}". Supported: string, env`);
+            throw new Error(`Unknown source type "${source}" for variable "${varName}". Supported: string, env, AwsSecretManager`);
     }
 }
 
 /**
  * Generate .env content from template
  * @param {object} template - Parsed template object
- * @returns {{ content: string, errors: string[] }} Generated content and any errors
+ * @returns {Promise<{ content: string, errors: string[] }>} Generated content and any errors
  */
-function generateEnvContent(template) {
+async function generateEnvContent(template) {
     const lines = [];
     const errors = [];
 
     for (const [varName, config] of Object.entries(template)) {
-        const resolvedValue = resolveValue(config, varName);
         const isRequired = config.required === true;
+
+        let resolvedValue;
+        try {
+            resolvedValue = await resolveValue(config, varName);
+        } catch (err) {
+            if (isRequired) {
+                errors.push(err.message);
+            }
+            continue;
+        }
 
         if (resolvedValue === null) {
             if (isRequired) {
@@ -111,11 +177,11 @@ function generateEnvContent(template) {
  * @param {string} inputPath - Path to template file
  * @param {string} outputPath - Path to output .env file
  * @param {{ dryRun?: boolean }} options - Options
- * @returns {{ success: boolean, errors: string[] }}
+ * @returns {Promise<{ success: boolean, errors: string[] }>}
  */
-function makeEnv(inputPath, outputPath, options = {}) {
+async function makeEnv(inputPath, outputPath, options = {}) {
     const template = parseTemplateFile(inputPath);
-    const {content, errors} = generateEnvContent(template);
+    const {content, errors} = await generateEnvContent(template);
 
     if (errors.length > 0) {
         return {success: false, errors};
@@ -202,15 +268,19 @@ function generateTemplate(envPath, outputPath) {
 /**
  * Update a template file with current resolved values as defaults
  * @param {string} templatePath - Path to template file
- * @returns {{ success: boolean, errors: string[] }}
+ * @returns {Promise<{ success: boolean, errors: string[] }>}
  */
-function setDefaults(templatePath) {
+async function setDefaults(templatePath) {
     const template = parseTemplateFile(templatePath);
 
     for (const [varName, config] of Object.entries(template)) {
-        const resolvedValue = resolveValue(config, varName);
-        if (resolvedValue !== null) {
-            config.default = resolvedValue;
+        try {
+            const resolvedValue = await resolveValue(config, varName);
+            if (resolvedValue !== null) {
+                config.default = resolvedValue;
+            }
+        } catch {
+            // Skip variables that fail to resolve
         }
     }
 

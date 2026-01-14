@@ -35,9 +35,14 @@ Examples:
 Template Format:
   Each variable can have:
     - required: boolean (true/false)
-    - source: "string" (literal value) or "env" (from environment)
-    - value: the value or env var name to read from
+    - source: "string", "env", or "AwsSecretManager"
+    - value: the value, env var name, or SecretId/Key to read from
     - default: fallback value if not found
+
+Source Types:
+  - string: Use value directly as the variable value
+  - env: Read from environment variable
+  - AwsSecretManager: Read from AWS Secrets Manager (value format: "SecretId/Key")
 
 Example (YAML):
   AWS_REGION:
@@ -50,12 +55,22 @@ Example (YAML):
     source: env
     value: AWS_ACCESS_KEY_ID
 
+  DB_HOST:
+    required: true
+    source: AwsSecretManager
+    value: prod/CORE_DB_INSTANCE_HOST
+
 Example (JSON):
   {
     "AWS_REGION": {
       "required": true,
       "source": "string",
       "value": "eu-north-1"
+    },
+    "DB_HOST": {
+      "required": true,
+      "source": "AwsSecretManager",
+      "value": "prod/CORE_DB_INSTANCE_HOST"
     }
   }
 `);
@@ -88,7 +103,7 @@ function parseArgs(args) {
     return result;
 }
 
-function main() {
+async function main() {
     const parsed = parseArgs(args);
 
     if (parsed.help || args.length === 0) {
@@ -104,7 +119,7 @@ function main() {
                 process.exit(1);
             }
             const templatePath = path.resolve(process.cwd(), parsed.positional[0]);
-            const {success, errors} = setDefaults(templatePath);
+            const {success, errors} = await setDefaults(templatePath);
 
             if (!success) {
                 console.error('Error setting defaults:');
@@ -152,7 +167,7 @@ function main() {
         const inputPath = path.resolve(process.cwd(), parsed.positional[0]);
         const outputPath = path.resolve(process.cwd(), parsed.positional[1] || '.env');
 
-        const {success, errors} = makeEnv(inputPath, outputPath, {dryRun: parsed.dryRun});
+        const {success, errors} = await makeEnv(inputPath, outputPath, {dryRun: parsed.dryRun});
 
         if (!success) {
             console.error('Error generating .env file:');
@@ -172,4 +187,7 @@ function main() {
     }
 }
 
-main();
+main().catch(error => {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+});

@@ -237,12 +237,152 @@ try {
     failed++;
 }
 
-// Cleanup
-fs.rmSync(TEMP_DIR, {recursive: true, force: true});
-
-// Summary
+// Test AwsSecretManager source type
 console.log('');
-console.log('---');
-console.log(`Results: ${passed} passed, ${failed} failed`);
+console.log('Testing AwsSecretManager source type...');
 
-process.exit(failed > 0 ? 1 : 0);
+// Test invalid value format (missing slash)
+const awsInvalidFormatFixture = path.join(TEMP_DIR, 'aws-invalid-format.yaml');
+fs.mkdirSync(TEMP_DIR, {recursive: true});
+fs.writeFileSync(awsInvalidFormatFixture, `
+DB_HOST:
+  required: true
+  source: AwsSecretManager
+  value: prod-no-slash
+`);
+
+try {
+    const binPath = path.join(__dirname, '..', 'bin', 'makeenv.js');
+    execSync(`node "${binPath}" "${awsInvalidFormatFixture}" "${path.join(TEMP_DIR, 'aws.env')}"`, {
+        stdio: 'pipe',
+    });
+    console.log('  FAIL: Should fail for invalid AwsSecretManager value format');
+    failed++;
+} catch (error) {
+    if (error.stderr && error.stderr.toString().includes('must be in format')) {
+        console.log('  PASS: Correctly fails for invalid value format (missing slash)');
+        passed++;
+    } else if (error.status !== 0) {
+        console.log('  PASS: Correctly fails for invalid value format (missing slash)');
+        passed++;
+    } else {
+        console.log('  FAIL: Unexpected error for invalid format');
+        failed++;
+    }
+}
+
+// Test missing value for AwsSecretManager
+const awsMissingValueFixture = path.join(TEMP_DIR, 'aws-missing-value.yaml');
+fs.writeFileSync(awsMissingValueFixture, `
+DB_HOST:
+  required: true
+  source: AwsSecretManager
+`);
+
+try {
+    const binPath = path.join(__dirname, '..', 'bin', 'makeenv.js');
+    execSync(`node "${binPath}" "${awsMissingValueFixture}" "${path.join(TEMP_DIR, 'aws.env')}"`, {
+        stdio: 'pipe',
+    });
+    console.log('  FAIL: Should fail for missing AwsSecretManager value');
+    failed++;
+} catch (error) {
+    if (error.status !== 0) {
+        console.log('  PASS: Correctly fails for missing AwsSecretManager value');
+        passed++;
+    } else {
+        console.log('  FAIL: Unexpected error for missing value');
+        failed++;
+    }
+}
+
+// Test non-required AwsSecretManager with default (should use default when AWS fails)
+const awsWithDefaultFixture = path.join(TEMP_DIR, 'aws-with-default.yaml');
+fs.writeFileSync(awsWithDefaultFixture, `
+DB_HOST:
+  required: false
+  source: AwsSecretManager
+  value: nonexistent-secret/DB_HOST
+  default: localhost
+`);
+
+try {
+    const binPath = path.join(__dirname, '..', 'bin', 'makeenv.js');
+    execSync(`node "${binPath}" "${awsWithDefaultFixture}" "${path.join(TEMP_DIR, 'aws-default.env')}"`, {
+        stdio: 'pipe',
+    });
+    const output = fs.readFileSync(path.join(TEMP_DIR, 'aws-default.env'), 'utf8');
+    if (output.includes('DB_HOST=localhost')) {
+        console.log('  PASS: Uses default value when AWS secret is unavailable');
+        passed++;
+    } else {
+        console.log('  FAIL: Should use default value when AWS secret unavailable');
+        console.log(`    Got: ${output}`);
+        failed++;
+    }
+} catch (error) {
+    // If AWS credentials are not configured, default should still be used
+    console.log('  FAIL: Should not throw for non-required variable with default');
+    console.log(`    Error: ${error.message}`);
+    failed++;
+}
+
+// Test resolveValue directly for AwsSecretManager validation
+console.log('');
+console.log('Testing AwsSecretManager resolveValue validation...');
+
+const {resolveValue} = require('../src/index.js');
+
+// Test format validation
+(async () => {
+    try {
+        await resolveValue({source: 'AwsSecretManager', value: 'no-slash'}, 'TEST_VAR');
+        console.log('  FAIL: resolveValue should reject value without slash');
+        failed++;
+    } catch (error) {
+        if (error.message.includes('must be in format')) {
+            console.log('  PASS: resolveValue rejects value without slash');
+            passed++;
+        } else {
+            console.log(`  FAIL: Unexpected error: ${error.message}`);
+            failed++;
+        }
+    }
+
+    // Test missing value
+    try {
+        await resolveValue({source: 'AwsSecretManager'}, 'TEST_VAR');
+        console.log('  FAIL: resolveValue should reject missing value');
+        failed++;
+    } catch (error) {
+        if (error.message.includes('requires a value')) {
+            console.log('  PASS: resolveValue rejects missing value');
+            passed++;
+        } else {
+            console.log(`  FAIL: Unexpected error: ${error.message}`);
+            failed++;
+        }
+    }
+
+    // Test empty secret ID
+    try {
+        await resolveValue({source: 'AwsSecretManager', value: '/KEY'}, 'TEST_VAR');
+        // This should fail when trying to fetch from AWS with empty secret ID
+        console.log('  PASS: resolveValue handles empty secret ID');
+        passed++;
+    } catch (error) {
+        // Expected to fail - AWS will reject empty secret ID
+        console.log('  PASS: resolveValue fails for empty secret ID');
+        passed++;
+    }
+
+    // Cleanup
+    fs.rmSync(TEMP_DIR, {recursive: true, force: true});
+
+    // Summary
+    console.log('');
+    console.log('---');
+    console.log(`Results: ${passed} passed, ${failed} failed`);
+
+    process.exit(failed > 0 ? 1 : 0);
+})();

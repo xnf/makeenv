@@ -26,19 +26,21 @@ This is a CLI tool that generates `.env` files from JSON, YAML, or TOML template
 
 **Key exports from `src/index.js`:**
 
-- `makeEnv(inputPath, outputPath, options)` - Main function, returns `{ success, errors }`. Options:
+- `makeEnv(inputPath, outputPath, options)` - Main async function, returns `Promise<{ success, errors }>`. Options:
   `{ dryRun: boolean }`
 - `parseTemplateFile(filePath)` - Auto-detects format by extension
-- `generateEnvContent(template)` - Produces env content from parsed template
-- `resolveValue(config, varName)` - Resolves single var based on source type
+- `generateEnvContent(template)` - Async, produces env content from parsed template
+- `resolveValue(config, varName)` - Async, resolves single var based on source type
 - `generateTemplate(envPath, outputPath)` - Create template from .env file (reverse operation)
-- `setDefaults(templatePath)` - Update template with current resolved values as defaults
+- `setDefaults(templatePath)` - Async, update template with current resolved values as defaults
 - `parseEnvFile(filePath)` - Parse .env file into key-value pairs
 
 **Source types:**
 
 - `string` - Use `value` field directly
 - `env` - Read from `process.env[value]`
+- `AwsSecretManager` - Read from AWS Secrets Manager. Value format: `SecretId/Key` (e.g., `prod/DB_HOST`).
+  Uses AWS SDK default credential chain. Secrets are cached per execution to avoid redundant API calls.
 
 ## Testing
 
