@@ -22,14 +22,14 @@ npx makeenv --set-defaults <template-file>
 Each variable in the template has these properties:
 - `required` (boolean): Fail if value is missing
 - `source` ("string" | "env" | "AwsSecretManager"): Value source type
-- `value` (string): The value, env var name, or SecretId/Key to read
+- `value` (string): The value, env var name, or SecretId:Key to read
 - `default` (string): Fallback if not found
 
 ## Source Types
 
 - `string`: Use value directly as the variable value
 - `env`: Read from environment variable
-- `AwsSecretManager`: Read from AWS Secrets Manager (value format: "SecretId/Key")
+- `AwsSecretManager`: Read from AWS Secrets Manager (value format: "SecretId:Key")
 
 ## Example (YAML)
 
@@ -45,7 +45,7 @@ AWS_ACCESS_KEY_ID:
 DB_HOST:
   required: true
   source: AwsSecretManager
-  value: prod/DB_HOST
+  value: prod/database:DB_HOST
 OPTIONAL_FEATURE:
   required: false
   source: env

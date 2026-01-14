@@ -39,7 +39,7 @@ This is a CLI tool that generates `.env` files from JSON, YAML, or TOML template
 
 - `string` - Use `value` field directly
 - `env` - Read from `process.env[value]`
-- `AwsSecretManager` - Read from AWS Secrets Manager. Value format: `SecretId/Key` (e.g., `prod/DB_HOST`).
+- `AwsSecretManager` - Read from AWS Secrets Manager. Value format: `SecretId:Key` (e.g., `prod/database:DB_HOST`).
   Uses AWS SDK default credential chain. Secrets are cached per execution to avoid redundant API calls.
 
 ## Testing

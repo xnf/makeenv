@@ -97,14 +97,14 @@ async function resolveValue(config, varName) {
 
         case SOURCE_TYPES.AWS_SECRETS_MANAGER:
             if (!value) {
-                throw new Error(`Variable "${varName}" with source AwsSecretManager requires a value in format "SecretId/Key"`);
+                throw new Error(`Variable "${varName}" with source AwsSecretManager requires a value in format "SecretId:Key"`);
             }
-            const slashIndex = value.indexOf('/');
-            if (slashIndex === -1) {
-                throw new Error(`Variable "${varName}" value "${value}" must be in format "SecretId/Key"`);
+            const colonIndex = value.lastIndexOf(':');
+            if (colonIndex === -1) {
+                throw new Error(`Variable "${varName}" value "${value}" must be in format "SecretId:Key"`);
             }
-            const secretId = value.slice(0, slashIndex);
-            const secretKey = value.slice(slashIndex + 1);
+            const secretId = value.slice(0, colonIndex);
+            const secretKey = value.slice(colonIndex + 1);
 
             try {
                 const secret = await getAwsSecret(secretId);

@@ -36,13 +36,13 @@ Template Format:
   Each variable can have:
     - required: boolean (true/false)
     - source: "string", "env", or "AwsSecretManager"
-    - value: the value, env var name, or SecretId/Key to read from
+    - value: the value, env var name, or SecretId:Key to read from
     - default: fallback value if not found
 
 Source Types:
   - string: Use value directly as the variable value
   - env: Read from environment variable
-  - AwsSecretManager: Read from AWS Secrets Manager (value format: "SecretId/Key")
+  - AwsSecretManager: Read from AWS Secrets Manager (value format: "SecretId:Key")
 
 Example (YAML):
   AWS_REGION:
@@ -58,7 +58,7 @@ Example (YAML):
   DB_HOST:
     required: true
     source: AwsSecretManager
-    value: prod/CORE_DB_INSTANCE_HOST
+    value: prod/database:CORE_DB_INSTANCE_HOST
 
 Example (JSON):
   {
@@ -70,7 +70,7 @@ Example (JSON):
     "DB_HOST": {
       "required": true,
       "source": "AwsSecretManager",
-      "value": "prod/CORE_DB_INSTANCE_HOST"
+      "value": "prod/database:CORE_DB_INSTANCE_HOST"
     }
   }
 `);

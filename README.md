@@ -76,15 +76,15 @@ Templates define environment variables with the following properties:
 |------------|---------|-------------------------------------------------------------------------|
 | `required` | boolean | If `true`, generation fails when value is missing                       |
 | `source`   | string  | `"string"`, `"env"`, or `"AwsSecretManager"`                            |
-| `value`    | string  | The literal value, environment variable name, or `SecretId/Key` to read |
+| `value`    | string  | The literal value, environment variable name, or `SecretId:Key` to read |
 | `default`  | string  | Fallback value if the primary value is not found                        |
 
 ### Sources
 
 - **`string`**: Use the `value` field directly as the variable value
 - **`env`**: Read the value from an environment variable named in `value`
-- **`AwsSecretManager`**: Read from AWS Secrets Manager. The `value` must be in format `SecretId/Key` (e.g.,
-  `prod/DB_HOST`). Uses AWS SDK default credential chain.
+- **`AwsSecretManager`**: Read from AWS Secrets Manager. The `value` must be in format `SecretId:Key` (e.g.,
+  `prod/database:DB_HOST`). Uses AWS SDK default credential chain.
 
 ## Examples
 
@@ -111,7 +111,7 @@ DATABASE_URL:
 DB_PASSWORD:
   required: true
   source: AwsSecretManager
-  value: prod/DB_PASSWORD
+  value: prod/database:DB_PASSWORD
 
 OPTIONAL_FEATURE:
   required: false
@@ -142,7 +142,7 @@ OPTIONAL_FEATURE:
   "DB_PASSWORD": {
     "required": true,
     "source": "AwsSecretManager",
-    "value": "prod/DB_PASSWORD"
+    "value": "prod/database:DB_PASSWORD"
   },
   "OPTIONAL_FEATURE": {
     "required": false,
@@ -174,7 +174,7 @@ value = "DB_CONNECTION_STRING"
 [DB_PASSWORD]
 required = true
 source = "AwsSecretManager"
-value = "prod/DB_PASSWORD"
+value = "prod/database:DB_PASSWORD"
 
 [OPTIONAL_FEATURE]
 required = false

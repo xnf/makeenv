@@ -241,14 +241,14 @@ try {
 console.log('');
 console.log('Testing AwsSecretManager source type...');
 
-// Test invalid value format (missing slash)
+// Test invalid value format (missing colon)
 const awsInvalidFormatFixture = path.join(TEMP_DIR, 'aws-invalid-format.yaml');
 fs.mkdirSync(TEMP_DIR, {recursive: true});
 fs.writeFileSync(awsInvalidFormatFixture, `
 DB_HOST:
   required: true
   source: AwsSecretManager
-  value: prod-no-slash
+  value: prod-no-colon
 `);
 
 try {
@@ -260,10 +260,10 @@ try {
     failed++;
 } catch (error) {
     if (error.stderr && error.stderr.toString().includes('must be in format')) {
-        console.log('  PASS: Correctly fails for invalid value format (missing slash)');
+        console.log('  PASS: Correctly fails for invalid value format (missing colon)');
         passed++;
     } else if (error.status !== 0) {
-        console.log('  PASS: Correctly fails for invalid value format (missing slash)');
+        console.log('  PASS: Correctly fails for invalid value format (missing colon)');
         passed++;
     } else {
         console.log('  FAIL: Unexpected error for invalid format');
@@ -302,7 +302,7 @@ fs.writeFileSync(awsWithDefaultFixture, `
 DB_HOST:
   required: false
   source: AwsSecretManager
-  value: nonexistent-secret/DB_HOST
+  value: nonexistent-secret:DB_HOST
   default: localhost
 `);
 
@@ -336,12 +336,12 @@ const {resolveValue} = require('../src/index.js');
 // Test format validation
 (async () => {
     try {
-        await resolveValue({source: 'AwsSecretManager', value: 'no-slash'}, 'TEST_VAR');
-        console.log('  FAIL: resolveValue should reject value without slash');
+        await resolveValue({source: 'AwsSecretManager', value: 'no-colon'}, 'TEST_VAR');
+        console.log('  FAIL: resolveValue should reject value without colon');
         failed++;
     } catch (error) {
         if (error.message.includes('must be in format')) {
-            console.log('  PASS: resolveValue rejects value without slash');
+            console.log('  PASS: resolveValue rejects value without colon');
             passed++;
         } else {
             console.log(`  FAIL: Unexpected error: ${error.message}`);
@@ -366,7 +366,7 @@ const {resolveValue} = require('../src/index.js');
 
     // Test empty secret ID
     try {
-        await resolveValue({source: 'AwsSecretManager', value: '/KEY'}, 'TEST_VAR');
+        await resolveValue({source: 'AwsSecretManager', value: ':KEY'}, 'TEST_VAR');
         // This should fail when trying to fetch from AWS with empty secret ID
         console.log('  PASS: resolveValue handles empty secret ID');
         passed++;
